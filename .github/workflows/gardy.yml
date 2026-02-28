@@ -1,0 +1,41 @@
+name: Run Gardy Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      tournament_id:
+        description: "Limitless play API tournament ID (leave blank to auto-search)"
+        required: false
+      search:
+        description: "Search term for tournament name"
+        required: false
+        default: "International"
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Gardy
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.tournament_id }}" ]; then
+            ARGS="-t ${{ github.event.inputs.tournament_id }}"
+          elif [ -n "${{ github.event.inputs.search }}" ]; then
+            ARGS="-s '${{ github.event.inputs.search }}'"
+          fi
+          python gardy.py $ARGS -d 2>&1 | tee results.txt
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardy-results
+          path: results.txt
